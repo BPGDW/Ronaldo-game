@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Роналду: Путь к Кубку</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #006400, #b30000);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 15px;
+    }
+    .game-container {
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+    .scene-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      background: #333;
+    }
+    .scene-text {
+      font-size: 18px;
+      line-height: 1.5;
+      margin-bottom: 25px;
+      min-height: 80px;
+    }
+    .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .choice-btn {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: white;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(5px);
+    }
+    .choice-btn:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: #ffd700;
+    }
+    .choice-btn:active {
+      transform: scale(0.97);
+    }
+    .result-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .result-screen h2 {
+      font-size: 32px;
+      text-shadow: 0 0 20px gold;
+    }
+    .result-screen .result-image {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid gold;
+    }
+    .send-btn {
+      background: #ffd700;
+      color: #000;
+      border: none;
+      padding: 18px 40px;
+      border-radius: 50px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    .send-btn:hover {
+      background: #ffea70;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <!-- Экран сцены -->
+    <div id="sceneScreen">
+      <img id="sceneImage" class="scene-image" src="" alt="Сцена">
+      <div id="sceneText" class="scene-text"></div>
+      <div id="choicesContainer" class="choices"></div>
+    </div>
+
+    <!-- Экран результата -->
+    <div id="resultScreen" class="result-screen">
+      <img id="resultImage" class="result-image" src="" alt="Итог">
+      <h2 id="resultTitle"></h2>
+      <p id="resultMessage" style="font-size:18px;"></p>
+      <button id="sendResultBtn" class="send-btn">Отправить результат боту 🏆</button>
+    </div>
+  </div>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // ========== ДАННЫЕ ИГРЫ ==========
+    const scenes = {
+      start: {
+        image: "https://placehold.co/400x200/006400/white?text=Portugal+2026",
+        text: "Чемпионат мира 2026. Португалия вышла из группы и попала в плей-офф. Криштиану Роналду, тебе 41, это последний шанс взять Кубок. В 1/8 финала вас ждёт Бразилия. Как подготовиться?",
+        choices: [
+          { text: "🔄 Тотальный разбор тактики соперника", next: "brazil_win" },
+          { text: "🧘‍♂️ Восстановление и мотивация команды", next: "brazil_win" },
+          { text: "😴 Отдых и надежда на талант", next: "brazil_lose" }
+        ]
+      },
+      brazil_win: {
+        image: "https://placehold.co/400x200/1a6600/white?text=Portugal+2-1+Brazil",
+        text: "Португалия побеждает Бразилию 2:1! Роналду забивает победный гол. В четвертьфинале – Аргентина и Месси. Твой план?",
+        choices: [
+[14.07.2026 15:57] Богдан: { text: "⚡ Атакующий прессинг с первых минут", next: "argentina_win" },
+          { text: "🛡️ Глубокая оборона и контратаки", next: "argentina_win" },
+          { text: "🤷 Играть как обычно, без риска", next: "argentina_lose" }
+        ]
+      },
+      brazil_lose: {
+        image: "https://placehold.co/400x200/8b0000/white?text=Portugal+0-2+Brazil",
+        text: "Португалия проигрывает Бразилии 0:2. Роналду не реализовал пенальти. Команда вылетает. Мечта разбита.",
+        choices: [],
+        result: { title: "Поражение", message: "Ты не смог привести Португалию к победе. Попробуй ещё раз!", image: "https://placehold.co/120x120/8b0000/white?text=Lose", win: false }
+      },
+      argentina_win: {
+        image: "https://placehold.co/400x200/d4af37/white?text=Portugal+3-2+Argentina",
+        text: "Эпическая битва! Португалия побеждает Аргентину 3:2. Роналду оформляет дубль. В полуфинале – Франция. Как настроить команду?",
+        choices: [
+          { text: "💪 Максимальная концентрация, дисциплина", next: "france_win" },
+          { text: "🎉 Лёгкость и вера в звезду Роналду", next: "france_lose" }
+        ]
+      },
+      argentina_lose: {
+        image: "https://placehold.co/400x200/8b0000/white?text=Argentina+1-0+Portugal",
+        text: "Аргентина выигрывает 1:0. Месси обнимает Роналду после матча. Слёзы. Конец пути.",
+        choices: [],
+        result: { title: "Вылет в 1/4", message: "Ты был близко, но не смог пройти Месси. Попробуй снова!", image: "https://placehold.co/120x120/8b0000/white?text=Lose", win: false }
+      },
+      france_win: {
+        image: "https://placehold.co/400x200/0055a4/white?text=Portugal+1-0+France",
+        text: "Фантастика! Португалия обыгрывает Францию 1:0 в полуфинале. Роналду забивает со штрафного на 89-й минуте. ФИНАЛ! Соперник – Испания.",
+        choices: [
+          { text: "🏆 Играть сердцем, за всю карьеру", next: "final_win" },
+          { text: "📋 Холодный расчёт и тактика", next: "final_win" },
+          { text: "😨 Слишком большая ответственность, осторожность", next: "final_lose" }
+        ]
+      },
+      france_lose: {
+        image: "https://placehold.co/400x200/8b0000/white?text=France+2-1+Portugal",
+        text: "Франция побеждает 2:1. Мбаппе забивает решающий гол. Роналду покидает поле в слезах. Полуфинал – не финал.",
+        choices: [],
+        result: { title: "Поражение в 1/2", message: "Совсем чуть-чуть не хватило до финала. Попробуй другой путь.", image: "https://placehold.co/120x120/8b0000/white?text=Lose", win: false }
+      },
+      final_win: {
+        image: "https://placehold.co/400x200/ffd700/white?text=Portugal+Champion",
+        text: "ФИНАЛ! Португалия побеждает Испанию 2:1 в дополнительное время. Роналду поднимает Кубок Мира! Слёзы счастья, легенда завершает карьеру на пике.",
+        choices: [],
+        result: { title: "ЧЕМПИОН МИРА!", message: "Ты привёл Роналду к величайшей победе! 🏆🇵🇹", image: "https://placehold.co/120x120/ffd700/white?text=Win", win: true }
+      },
+      final_lose: {
+        image: "https://placehold.co/400x200/8b0000/white?text=Spain+Wins",
+        text: "Финал. Испания побеждает 1:0. Роналду падает на газон. Последний матч в карьере. Сердце разбито.",
+        choices: [],
+        result: { title: "Поражение в финале", message: "Ты был в шаге от кубка. Может, в другой раз…", image: "https://placehold.co/120x120/8b0000/white?text=Lose", win: false }
+      }
+    };
+
+    let currentScene = 'start';
+    const sceneScreen = document.getElementById('sceneScreen');
+    const resultScreen = document.getElementById('resultScreen');
+    const sceneImage = document.getElementById('sceneImage');
+    const sceneText = document.getElementById('sceneText');
+    const choicesContainer = document.getElementById('choicesContainer');
+    const resultImage = document.getElementById('resultImage');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+    const sendResultBtn = document.getElementById('sendResultBtn');
+[14.07.2026 15:57] Богдан: function showScene(key) {
+      const scene = scenes[key];
+      if (!scene) return;
+      currentScene = key;
+      sceneScreen.style.display = 'block';
+      resultScreen.style.display = 'none';
+
+      sceneImage.src = scene.image;
+      sceneText.textContent = scene.text;
+      choicesContainer.innerHTML = '';
+
+      if (scene.choices && scene.choices.length > 0) {
+        scene.choices.forEach((choice, index) => {
+          const btn = document.createElement('button');
+          btn.className = 'choice-btn';
+          btn.textContent = choice.text;
+          btn.addEventListener('click', () => {
+            if (choice.next) {
+              showScene(choice.next);
+            }
+          });
+          choicesContainer.appendChild(btn);
+        });
+      } else if (scene.result) {
+        // Показать результат
+        showResult(scene.result);
+      }
+    }
+
+    function showResult(result) {
+      sceneScreen.style.display = 'none';
+      resultScreen.style.display = 'flex';
+      resultImage.src = result.image;
+      resultTitle.textContent = result.title;
+      resultMessage.textContent = result.message;
+      // Сохраняем результат для отправки
+      resultScreen.dataset.win = result.win ? 'win' : 'lose';
+    }
+
+    // Отправка данных боту
+    sendResultBtn.addEventListener('click', () => {
+      const winStatus = resultScreen.dataset.win === 'win' ? 'win' : 'lose';
+      const data = JSON.stringify({
+        game: 'ronaldo_wc2026',
+        result: winStatus
+      });
+      tg.sendData(data);
+      tg.close();
+    });
+
+    // Запуск
+    showScene('start');
+  </script>
+</body>
+</html>
